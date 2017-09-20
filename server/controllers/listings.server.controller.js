@@ -3,6 +3,14 @@
 var mongoose = require('mongoose'), 
     Listing = require('../models/listings.server.model.js');
 
+function compare(a,b) {
+    if (a.code < b.code)
+        return -1;
+    if (a.code > b.code)
+        return 1;
+    return 0;
+}
+
 /*
   In this file, you should use Mongoose queries in order to retrieve/add/remove/update listings.
   On an error you should send a 404 status code, as well as the error message. 
@@ -45,23 +53,41 @@ exports.read = function(req, res) {
 
 /* Update a listing */
 exports.update = function(req, res) {
-  var listing = req.listing;
-
   /* Replace the article's properties with the new properties found in req.body */
   /* save the coordinates (located in req.results if there is an address property) */
   /* Save the article */
+  var listing = req.listing;
+  Listing.findByIdAndUpdate(listing._id, req.body, {new: true}).exec(function(err, updatedListing) {
+    if(err) {
+      res.status(404).send(err)
+    }
+    res.status(200).json(updatedListing);
+  })
 };
 
 /* Delete a listing */
 exports.delete = function(req, res) {
   var listing = req.listing;
-
-  /* Remove the article */
+  console.log(req.listing);
+  Listing.findOneAndRemove({code: listing.code}).exec(function(err) {
+    if(err){
+      res.status(404).send(err);
+    }
+    res.status(200).send("Listing deleted");
+  })
 };
 
 /* Retreive all the directory listings, sorted alphabetically by listing code */
 exports.list = function(req, res) {
-  /* Your code here */
+  Listing.find({}).exec(function(err, listings) {
+    if(err) {
+      console.log(err);
+      res.status(404).send(err);
+    } else {
+      req.listings = listings.sort(compare);
+      res.status(200).json(listings);
+    }
+  })
 };
 
 /* 
